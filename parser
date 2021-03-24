@@ -1,0 +1,57 @@
+import io
+
+from pdfminer.converter import TextConverter
+from pdfminer.pdfinterp import PDFPageInterpreter
+from pdfminer.pdfinterp import PDFResourceManager
+from pdfminer.pdfpage import PDFPage
+from pdfminer.high_level import extract_pages
+
+def extract_text_by_page(pdf_path):
+    with open(pdf_path, 'rb') as fh:
+        for page in PDFPage.get_pages(fh,
+                                      caching=True,
+                                      check_extractable=True):
+            resource_manager = PDFResourceManager()
+            fake_file_handle = io.StringIO()
+            converter = TextConverter(resource_manager, fake_file_handle)
+            page_interpreter = PDFPageInterpreter(resource_manager, converter)
+            page_interpreter.process_page(page)
+
+            text = fake_file_handle.getvalue()
+            yield text
+
+
+            converter.close()
+            fake_file_handle.close()
+
+
+def extract_text(pdf_path):
+    page_numbers = [] # введённые пользователем страницы.
+    # количество страниц в пдф файле.
+    max_number = len(list(extract_pages(pdf_path)))
+    try:
+        ask = int(input("Сколько страниц распарсим?  \n"))
+
+    except ValueError:
+        print("Это не число. \n")
+        ask = int(input("Сколько страниц распарсим?  \n"))
+
+    if (0 < ask < max_number):
+        for i in range(ask):
+            try:
+                number = int(input("Введите номер старницы!  \n"))
+                page_numbers.append((number))
+            except ValueError:
+                    print("Это не число. \n")
+                    number = int(input("Введите номер старницы!  \n"))
+
+        count = 0
+        for page in extract_text_by_page(pdf_path):
+            count += 1
+            if count in page_numbers:
+                print(page, "\n")
+    else:
+        print("В данной файле нет такой страницы.")
+
+if __name__ == '__main__':
+    print(extract_text('РазделПД3.Подр.ПД5_11962.pdf'))
